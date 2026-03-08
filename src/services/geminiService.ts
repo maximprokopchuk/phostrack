@@ -1,11 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { PhosphateEstimate } from "../types";
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
 const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
 function parseSafeJSON(text: string | undefined): any {
-  if (!text) throw new Error("Empty response from AI");
+  if (!text) throw new Error("AI вернул пустой ответ");
   
   try {
     // Remove potential markdown formatting
@@ -13,7 +13,7 @@ function parseSafeJSON(text: string | undefined): any {
     return JSON.parse(cleanText);
   } catch (e) {
     console.error("Gemini JSON Parse Error. Raw text:", text);
-    throw new Error("AI returned invalid data format. Please try again.");
+    throw new Error("AI вернул данные в неверном формате. Попробуйте еще раз.");
   }
 }
 
@@ -31,9 +31,27 @@ async function fetchWithRetry(fn: () => Promise<any>, retries = 2, delay = 2000)
   }
 }
 
+function handleApiError(error: any): never {
+  console.error("Gemini API Error:", error);
+  
+  const message = error.message || "";
+  
+  if (message.includes("429") || message.includes("quota")) {
+    throw new Error("Лимит запросов исчерпан (Quota Exceeded). Это ограничение бесплатной версии Google API. Если вы только что сменили ключ, подождите 1-2 минуты или проверьте лимиты в Google Console.");
+  }
+  if (message.includes("503") || message.includes("high demand") || message.includes("UNAVAILABLE")) {
+    throw new Error("Сервер ИИ перегружен (ошибка 503). Пожалуйста, попробуйте еще раз через 10-20 секунд.");
+  }
+  if (message.includes("API key not valid") || message.includes("invalid") || message.includes("403")) {
+    throw new Error("API ключ недействителен или не имеет доступа. Проверьте правильность ключа в настройках.");
+  }
+  
+  throw new Error(`Ошибка API: ${message || "Неизвестная ошибка"}`);
+}
+
 export async function estimatePhosphate(query: string): Promise<PhosphateEstimate> {
   if (!apiKey) {
-    throw new Error("API Key is missing. Please set VITE_GEMINI_API_KEY in Vercel settings.");
+    throw new Error("API ключ не найден. Пожалуйста, добавьте GEMINI_API_KEY в настройки (Settings -> Secrets).");
   }
 
   try {
@@ -71,19 +89,13 @@ export async function estimatePhosphate(query: string): Promise<PhosphateEstimat
 
     return parseSafeJSON(response.text);
   } catch (error: any) {
-    if (error.message?.includes("429") || error.message?.includes("quota")) {
-      throw new Error("Превышен лимит запросов API (Rate Limit). Подождите минуту.");
-    }
-    if (error.message?.includes("503") || error.message?.includes("high demand") || error.message?.includes("UNAVAILABLE")) {
-      throw new Error("Сервер ИИ перегружен (ошибка 503). Пожалуйста, попробуйте еще раз через несколько секунд.");
-    }
-    throw error;
+    return handleApiError(error);
   }
 }
 
 export async function estimatePhosphateFromImage(base64Image: string): Promise<PhosphateEstimate> {
   if (!apiKey) {
-    throw new Error("API Key is missing. Please set VITE_GEMINI_API_KEY in Vercel settings.");
+    throw new Error("API ключ не найден. Пожалуйста, добавьте GEMINI_API_KEY в настройки (Settings -> Secrets).");
   }
 
   try {
@@ -127,12 +139,6 @@ export async function estimatePhosphateFromImage(base64Image: string): Promise<P
 
     return parseSafeJSON(response.text);
   } catch (error: any) {
-    if (error.message?.includes("429") || error.message?.includes("quota")) {
-      throw new Error("Превышен лимит запросов API. Подождите минуту.");
-    }
-    if (error.message?.includes("503") || error.message?.includes("high demand") || error.message?.includes("UNAVAILABLE")) {
-      throw new Error("Сервер ИИ перегружен (ошибка 503). Пожалуйста, попробуйте еще раз через несколько секунд.");
-    }
-    throw error;
+    return handleApiError(error);
   }
 }
