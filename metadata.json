@@ -1,0 +1,5 @@
+{
+  "name": "PhosTrack",
+  "description": "Track your daily phosphate intake and peritoneal dialysis protocol with AI-powered estimation.",
+  "requestFramePermissions": ["camera"]
+}
