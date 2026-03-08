@@ -17,19 +17,16 @@ function parseSafeJSON(text: string | undefined): any {
   }
 }
 
-async function fetchWithRetry(fn: () => Promise<any>, retries = 2, delay = 2000): Promise<any> {
-  try {
-    return await fn();
-  } catch (error: any) {
-    const isRetryable = error.message?.includes("503") || error.message?.includes("high demand") || error.message?.includes("UNAVAILABLE");
-    if (isRetryable && retries > 0) {
-      console.log(`Gemini is busy, retrying in ${delay}ms... (${retries} retries left)`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return fetchWithRetry(fn, retries - 1, delay * 1.5);
+const fetchWithRetry = async (fn: () => Promise<any>, retries = 3, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
     }
-    throw error;
   }
-}
+};
 
 function handleApiError(error: any): never {
   console.error("Gemini API Error:", error);
@@ -56,7 +53,7 @@ export async function estimatePhosphate(query: string): Promise<PhosphateEstimat
 
   try {
     const response = await fetchWithRetry(() => ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: `Estimate the phosphate content (in milligrams), calories, and KBJU (protein, fat, carbs in grams) and electrolytes (potassium, magnesium, sodium in milligrams) for the following food description: "${query}". 
       Provide a realistic estimate based on standard nutritional data. 
       IMPORTANT: For CKD Stage 5 patients, be very strict about processed foods and additives. 
@@ -100,7 +97,7 @@ export async function estimatePhosphateFromImage(base64Image: string): Promise<P
 
   try {
     const response = await fetchWithRetry(() => ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: [
         {
           text: "Identify the food in this image and estimate its phosphate content (mg), calories, KBJU (protein, fat, carbs in g) and electrolytes (potassium, magnesium, sodium in mg) for a standard serving. Return JSON."
