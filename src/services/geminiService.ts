@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { PhosphateEstimate } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
 
 export async function estimatePhosphate(query: string): Promise<PhosphateEstimate> {
   const response = await ai.models.generateContent({
@@ -39,7 +39,7 @@ export async function estimatePhosphate(query: string): Promise<PhosphateEstimat
   return JSON.parse(response.text || "{}");
 }
 
-export async function estimatePhosphateFromImage(base64Image: string, mimeType: string = "image/jpeg"): Promise<PhosphateEstimate> {
+export async function estimatePhosphateFromImage(base64Image: string): Promise<PhosphateEstimate> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: [
@@ -48,7 +48,7 @@ export async function estimatePhosphateFromImage(base64Image: string, mimeType: 
       },
       {
         inlineData: {
-          mimeType,
+          mimeType: "image/jpeg",
           data: base64Image
         }
       }
