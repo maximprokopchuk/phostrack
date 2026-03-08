@@ -25,9 +25,9 @@ export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd }) => {
     try {
       const result = await estimatePhosphate(input);
       setEstimate(result);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Estimation failed:', err);
-      setError('Не удалось оценить блюдо. Проверьте подключение и API ключ в настройках Vercel.');
+      setError(err.message || 'Не удалось оценить блюдо. Проверьте подключение и API ключ.');
     } finally {
       setIsEstimating(false);
     }
@@ -46,9 +46,9 @@ export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd }) => {
         try {
           const result = await estimatePhosphateFromImage(base64);
           setEstimate(result);
-        } catch (err) {
+        } catch (err: any) {
           console.error('Image estimation failed:', err);
-          setError('Не удалось распознать еду по фото. Попробуйте текстовый ввод или проверьте API ключ.');
+          setError(err.message || 'Не удалось распознать еду по фото.');
         } finally {
           setIsEstimating(false);
         }
