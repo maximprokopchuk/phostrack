@@ -39,7 +39,7 @@ export async function estimatePhosphate(query: string): Promise<PhosphateEstimat
   return JSON.parse(response.text || "{}");
 }
 
-export async function estimatePhosphateFromImage(base64Image: string): Promise<PhosphateEstimate> {
+export async function estimatePhosphateFromImage(base64Image: string, mimeType: string = "image/jpeg"): Promise<PhosphateEstimate> {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: [
@@ -48,7 +48,7 @@ export async function estimatePhosphateFromImage(base64Image: string): Promise<P
       },
       {
         inlineData: {
-          mimeType: "image/jpeg",
+          mimeType,
           data: base64Image
         }
       }
