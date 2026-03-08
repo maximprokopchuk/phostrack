@@ -17,13 +17,27 @@ function parseSafeJSON(text: string | undefined): any {
   }
 }
 
+async function fetchWithRetry(fn: () => Promise<any>, retries = 2, delay = 2000): Promise<any> {
+  try {
+    return await fn();
+  } catch (error: any) {
+    const isRetryable = error.message?.includes("503") || error.message?.includes("high demand") || error.message?.includes("UNAVAILABLE");
+    if (isRetryable && retries > 0) {
+      console.log(`Gemini is busy, retrying in ${delay}ms... (${retries} retries left)`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return fetchWithRetry(fn, retries - 1, delay * 1.5);
+    }
+    throw error;
+  }
+}
+
 export async function estimatePhosphate(query: string): Promise<PhosphateEstimate> {
   if (!apiKey) {
     throw new Error("API Key is missing. Please set VITE_GEMINI_API_KEY in Vercel settings.");
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await fetchWithRetry(() => ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Estimate the phosphate content (in milligrams), calories, and KBJU (protein, fat, carbs in grams) and electrolytes (potassium, magnesium, sodium in milligrams) for the following food description: "${query}". 
       Provide a realistic estimate based on standard nutritional data. 
@@ -53,12 +67,15 @@ export async function estimatePhosphate(query: string): Promise<PhosphateEstimat
           required: ["foodName", "phosphateMg", "calories", "proteinG", "fatG", "carbsG", "potassiumMg", "magnesiumMg", "sodiumMg", "confidence", "explanation"]
         }
       }
-    });
+    }));
 
     return parseSafeJSON(response.text);
   } catch (error: any) {
     if (error.message?.includes("429") || error.message?.includes("quota")) {
       throw new Error("Превышен лимит запросов API (Rate Limit). Подождите минуту.");
+    }
+    if (error.message?.includes("503") || error.message?.includes("high demand") || error.message?.includes("UNAVAILABLE")) {
+      throw new Error("Сервер ИИ перегружен (ошибка 503). Пожалуйста, попробуйте еще раз через несколько секунд.");
     }
     throw error;
   }
@@ -70,7 +87,7 @@ export async function estimatePhosphateFromImage(base64Image: string): Promise<P
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await fetchWithRetry(() => ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [
         {
@@ -106,12 +123,15 @@ export async function estimatePhosphateFromImage(base64Image: string): Promise<P
           required: ["foodName", "phosphateMg", "calories", "proteinG", "fatG", "carbsG", "potassiumMg", "magnesiumMg", "sodiumMg", "confidence", "explanation"]
         }
       }
-    });
+    }));
 
     return parseSafeJSON(response.text);
   } catch (error: any) {
     if (error.message?.includes("429") || error.message?.includes("quota")) {
       throw new Error("Превышен лимит запросов API. Подождите минуту.");
+    }
+    if (error.message?.includes("503") || error.message?.includes("high demand") || error.message?.includes("UNAVAILABLE")) {
+      throw new Error("Сервер ИИ перегружен (ошибка 503). Пожалуйста, попробуйте еще раз через несколько секунд.");
     }
     throw error;
   }
