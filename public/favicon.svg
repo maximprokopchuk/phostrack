@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e2d45"/>
+    </linearGradient>
+    <linearGradient id="drop" x1="0%" y1="0%" x2="40%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+
+  <!-- Droplet -->
+  <path d="M16 4
+           C16 4 7 13 7 19
+           C7 23.4 11 27 16 27
+           C21 27 25 23.4 25 19
+           C25 13 16 4 16 4 Z"
+        fill="url(#drop)"/>
+
+  <!-- P -->
+  <text x="16.3" y="23.5"
+        font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif"
+        font-weight="900"
+        font-size="14"
+        fill="white"
+        fill-opacity="0.95"
+        text-anchor="middle">P</text>
+</svg>
