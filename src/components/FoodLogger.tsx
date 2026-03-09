@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Search, Sparkles, Camera, Loader2, Plus, X } from 'lucide-react';
-import { estimatePhosphate, estimatePhosphateFromImage } from '../services/geminiService';
+import { estimatePhosphate, estimatePhosphateFromImage } from '../services/nutritionService';
 import { PhosphateEstimate } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
