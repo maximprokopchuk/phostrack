@@ -202,7 +202,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8">
+      <main className="max-w-2xl mx-auto px-4 pt-8 pb-24" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}>
         <AnimatePresence mode="wait">
           {activeTab === 'phosphorus' && (
             <motion.div
