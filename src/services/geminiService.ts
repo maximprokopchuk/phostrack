@@ -24,27 +24,50 @@ const PhosphateEstimateSchema = z.object({
   explanation: z.string(),
 });
 
-const SYSTEM_PROMPT = `Ты — нутрициолог, специализирующийся на питании для пациентов с ХБП (Хроническая болезнь почек) 5 стадии на перитонеальном диализе.
-Оцени содержание фосфора (в мг), калории и КБЖУ (белки, жиры, углеводы в граммах) и электролиты (калий, магний, натрий в мг).
+// Reference values per 100g (used in few-shot examples for grounding)
+const SYSTEM_PROMPT = `You are a clinical dietitian for CKD stage 5 patients on peritoneal dialysis.
+Your task: given a food description, return nutritional data as JSON.
 
-ВАЖНО для ХБП 5 стадии: будь строг в отношении обработанных продуктов и добавок.
-Если продукт содержит неорганические фосфатные добавки (E338-E343, переработанное мясо, газировка, фастфуд) — увеличь оценку и упомяни это в объяснении.
-Если количество не указано — предполагай стандартную порцию.
+RULES:
+- If quantity is not specified, assume a typical single serving (see examples).
+- Scale all values proportionally to the actual amount.
+- For processed foods with phosphate additives (E338–E343): increase phosphateMg by 30–50% and note it.
+- Use established food composition databases (USDA, McCance & Widdowson) as reference.
+- Return ONLY valid JSON — no markdown, no text outside JSON.
 
-Отвечай ТОЛЬКО валидным JSON без markdown, без пояснений вне JSON, строго по схеме:
+REFERENCE (per 100g, for your calibration — do not output these):
+chicken breast cooked: phosphate 220mg, protein 31g, fat 3.6g, carbs 0g, calories 165, K 256mg, Na 74mg, Mg 29mg
+white rice cooked: phosphate 43mg, protein 2.7g, fat 0.3g, carbs 28g, calories 130, K 35mg, Na 1mg, Mg 12mg
+whole egg (50g each): phosphate 99mg, protein 6.3g, fat 5g, carbs 0.6g, calories 72, K 63mg, Na 62mg, Mg 6mg
+whole milk 200ml: phosphate 184mg, protein 6.6g, fat 6.8g, carbs 9.4g, calories 122, K 296mg, Na 100mg, Mg 20mg
+white bread slice 30g: phosphate 57mg, protein 2.7g, fat 1g, carbs 15g, calories 80, K 37mg, Na 142mg, Mg 7mg
+boiled potato 150g: phosphate 75mg, protein 3g, fat 0.1g, carbs 26g, calories 117, K 544mg, Na 5mg, Mg 24mg
+
+JSON SCHEMA:
 {
-  "foodName": "название блюда",
-  "phosphateMg": 0,
-  "calories": 0,
-  "proteinG": 0,
-  "fatG": 0,
-  "carbsG": 0,
-  "potassiumMg": 0,
-  "magnesiumMg": 0,
-  "sodiumMg": 0,
+  "foodName": "string — descriptive name with quantity",
+  "phosphateMg": number,
+  "calories": number,
+  "proteinG": number,
+  "fatG": number,
+  "carbsG": number,
+  "potassiumMg": number,
+  "magnesiumMg": number,
+  "sodiumMg": number,
   "confidence": "low" | "medium" | "high",
-  "explanation": "объяснение оценки"
-}`;
+  "explanation": "string — 1–2 sentences, reasoning, mention additives if relevant"
+}
+
+EXAMPLES:
+
+User: 2 яйца вареных
+Assistant: {"foodName":"2 варёных яйца (100г)","phosphateMg":198,"calories":144,"proteinG":12.6,"fatG":10,"carbsG":1.2,"potassiumMg":126,"magnesiumMg":12,"sodiumMg":124,"confidence":"high","explanation":"Два яйца по ~50г каждое. Значения масштабированы по базе USDA для варёного яйца."}
+
+User: тарелка гречки с молоком
+Assistant: {"foodName":"Гречневая каша с молоком (180г каши + 100мл молока)","phosphateMg":312,"calories":280,"proteinG":10,"fatG":5,"carbsG":48,"potassiumMg":380,"magnesiumMg":74,"sodiumMg":58,"confidence":"medium","explanation":"Гречка содержит ~190мг фосфора на 100г варёной. Молоко добавляет ~92мг. Итого ~312мг — высокий показатель для ХБП."}
+
+User: кусок пиццы пепперони
+Assistant: {"foodName":"Пицца пепперони 1 кусок (~125г)","phosphateMg":310,"calories":298,"proteinG":13,"fatG":12,"carbsG":34,"potassiumMg":230,"magnesiumMg":22,"sodiumMg":680,"confidence":"medium","explanation":"Пепперони содержит фосфатные добавки E451, фосфат увеличен на 40%. Высокое содержание натрия из-за переработанного мяса и сыра."}`;
 
 function checkApiKey(): void {
   if (!apiKey) {
@@ -63,6 +86,7 @@ async function callOpenRouter(model: string, messages: object[]): Promise<Phosph
     body: JSON.stringify({
       model,
       max_tokens: 512,
+      temperature: 0.1,
       messages,
     }),
   });
@@ -85,10 +109,7 @@ export async function estimatePhosphate(query: string): Promise<PhosphateEstimat
 
   return callOpenRouter(TEXT_MODEL, [
     { role: 'system', content: SYSTEM_PROMPT },
-    {
-      role: 'user',
-      content: `Оцени содержание фосфора, калории, КБЖУ и электролиты для: "${query}"`,
-    },
+    { role: 'user', content: query },
   ]);
 }
 
@@ -109,7 +130,7 @@ export async function estimatePhosphateFromImage(
         },
         {
           type: 'text',
-          text: 'Определи продукт на изображении и оцени содержание фосфора, калории, КБЖУ и электролиты для стандартной порции.',
+          text: 'Identify the food in the image and estimate its nutritional values for a standard serving.',
         },
       ],
     },
