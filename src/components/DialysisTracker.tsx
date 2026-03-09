@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { DialysisExchange, DailyVitals } from '../types';
 import { Plus, Trash2, Activity, Scale, Droplets, Clock, Save } from 'lucide-react';
-import { format, startOfDay } from 'date-fns';
+import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const DialysisTracker: React.FC = () => {
+interface DialysisTrackerProps {
+  dayStart: number;
+}
+
+export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) => {
   const [exchanges, setExchanges] = useState<DialysisExchange[]>([]);
   const [vitals, setVitals] = useState<DailyVitals[]>([]);
   const [showAddExchange, setShowAddExchange] = useState(false);
-  
+
   // Form states
   const [fill, setFill] = useState('2000');
   const [drain, setDrain] = useState('');
   const [solution, setSolution] = useState('1.5%');
-  
+
   const [weight, setWeight] = useState('');
   const [systolic, setSystolic] = useState('');
   const [diastolic, setDiastolic] = useState('');
@@ -62,7 +66,7 @@ export const DialysisTracker: React.FC = () => {
       systolic: parseInt(systolic) || 0,
       diastolic: parseInt(diastolic) || 0
     };
-    
+
     // Update or add
     const existingIndex = vitals.findIndex(v => v.date === today);
     if (existingIndex > -1) {
@@ -75,7 +79,7 @@ export const DialysisTracker: React.FC = () => {
   };
 
   const todayVitals = vitals.find(v => v.date === format(new Date(), 'yyyy-MM-dd'));
-  const todayExchanges = exchanges.filter(e => startOfDay(e.timestamp).getTime() === startOfDay(new Date()).getTime());
+  const todayExchanges = exchanges.filter(e => e.timestamp >= dayStart);
   const totalUF = todayExchanges.reduce((sum, e) => sum + e.uf, 0);
 
   return (
@@ -125,8 +129,8 @@ export const DialysisTracker: React.FC = () => {
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-500 uppercase">Вес (кг)</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               step="0.1"
               value={weight}
               onChange={e => setWeight(e.target.value)}
@@ -136,8 +140,8 @@ export const DialysisTracker: React.FC = () => {
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-500 uppercase">САД</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={systolic}
               onChange={e => setSystolic(e.target.value)}
               className="w-full px-3 py-2 rounded-xl text-sm"
@@ -146,8 +150,8 @@ export const DialysisTracker: React.FC = () => {
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-500 uppercase">ДАД</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={diastolic}
               onChange={e => setDiastolic(e.target.value)}
               className="w-full px-3 py-2 rounded-xl text-sm"
@@ -155,7 +159,7 @@ export const DialysisTracker: React.FC = () => {
             />
           </div>
         </div>
-        <button 
+        <button
           onClick={saveVitals}
           className="w-full mt-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors"
         >
@@ -167,7 +171,7 @@ export const DialysisTracker: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Протокол обменов</h3>
-          <button 
+          <button
             onClick={() => setShowAddExchange(true)}
             className="p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors"
           >
@@ -177,7 +181,7 @@ export const DialysisTracker: React.FC = () => {
 
         <AnimatePresence>
           {todayExchanges.map((ex, idx) => (
-            <motion.div 
+            <motion.div
               key={ex.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -203,7 +207,7 @@ export const DialysisTracker: React.FC = () => {
                 <span className={`font-black ${ex.uf >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                   {ex.uf > 0 ? `+${ex.uf}` : ex.uf}
                 </span>
-                <button 
+                <button
                   onClick={() => deleteExchange(ex.id)}
                   className="p-2 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
                 >
@@ -219,14 +223,14 @@ export const DialysisTracker: React.FC = () => {
       <AnimatePresence>
         {showAddExchange && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowAddExchange(false)}
               className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -253,8 +257,8 @@ export const DialysisTracker: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-500 uppercase">Влито (мл)</label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       value={fill}
                       onChange={e => setFill(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl"
@@ -262,8 +266,8 @@ export const DialysisTracker: React.FC = () => {
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-500 uppercase">Слито (мл)</label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       value={drain}
                       onChange={e => setDrain(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl"
@@ -271,7 +275,7 @@ export const DialysisTracker: React.FC = () => {
                     />
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={addExchange}
                   className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold mt-4"
                 >
