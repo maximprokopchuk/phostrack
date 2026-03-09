@@ -1,5 +1,4 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
 import { PhosphateEstimate } from '../types';
 
@@ -24,12 +23,29 @@ const PhosphateEstimateSchema = z.object({
   explanation: z.string(),
 });
 
+const JSON_SCHEMA = `{
+  "foodName": "название блюда",
+  "phosphateMg": 0,
+  "calories": 0,
+  "proteinG": 0,
+  "fatG": 0,
+  "carbsG": 0,
+  "potassiumMg": 0,
+  "magnesiumMg": 0,
+  "sodiumMg": 0,
+  "confidence": "low" | "medium" | "high",
+  "explanation": "объяснение оценки"
+}`;
+
 const SYSTEM_PROMPT = `Ты — нутрициолог, специализирующийся на питании для пациентов с ХБП (Хроническая болезнь почек) 5 стадии на перитонеальном диализе.
 Оцени содержание фосфора (в мг), калории и КБЖУ (белки, жиры, углеводы в граммах) и электролиты (калий, магний, натрий в мг).
 
 ВАЖНО для ХБП 5 стадии: будь строг в отношении обработанных продуктов и добавок.
 Если продукт содержит неорганические фосфатные добавки (E338-E343, переработанное мясо, газировка, фастфуд) — увеличь оценку и упомяни это в объяснении.
-Если количество не указано — предполагай стандартную порцию.`;
+Если количество не указано — предполагай стандартную порцию.
+
+Отвечай ТОЛЬКО валидным JSON без markdown-оформления, строго по схеме:
+${JSON_SCHEMA}`;
 
 function validateMimeType(mimeType: string): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' {
   const supported = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const;
@@ -45,13 +61,21 @@ function checkApiKey(): void {
   }
 }
 
+function extractAndParse(response: Anthropic.Message): PhosphateEstimate {
+  const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text');
+  if (!textBlock?.text) {
+    throw new Error('Пустой ответ от AI');
+  }
+  const cleaned = textBlock.text.replace(/```json\n?|\n?```/g, '').trim();
+  return PhosphateEstimateSchema.parse(JSON.parse(cleaned));
+}
+
 export async function estimatePhosphate(query: string): Promise<PhosphateEstimate> {
   checkApiKey();
 
-  const response = await client.messages.parse({
+  const response = await client.messages.create({
     model: 'claude-opus-4-6',
     max_tokens: 1024,
-    thinking: { type: 'adaptive' },
     system: SYSTEM_PROMPT,
     messages: [
       {
@@ -59,21 +83,20 @@ export async function estimatePhosphate(query: string): Promise<PhosphateEstimat
         content: `Оцени содержание фосфора, калории, КБЖУ и электролиты для: "${query}"`,
       },
     ],
-    output_config: {
-      format: zodOutputFormat(PhosphateEstimateSchema, 'phosphate_estimate'),
-    },
   });
 
-  return response.parsed_output as PhosphateEstimate;
+  return extractAndParse(response);
 }
 
-export async function estimatePhosphateFromImage(base64Image: string, mimeType: string = 'image/jpeg'): Promise<PhosphateEstimate> {
+export async function estimatePhosphateFromImage(
+  base64Image: string,
+  mimeType: string = 'image/jpeg'
+): Promise<PhosphateEstimate> {
   checkApiKey();
 
-  const response = await client.messages.parse({
+  const response = await client.messages.create({
     model: 'claude-opus-4-6',
     max_tokens: 1024,
-    thinking: { type: 'adaptive' },
     system: SYSTEM_PROMPT,
     messages: [
       {
@@ -94,10 +117,7 @@ export async function estimatePhosphateFromImage(base64Image: string, mimeType: 
         ],
       },
     ],
-    output_config: {
-      format: zodOutputFormat(PhosphateEstimateSchema, 'phosphate_estimate'),
-    },
   });
 
-  return response.parsed_output as PhosphateEstimate;
+  return extractAndParse(response);
 }
