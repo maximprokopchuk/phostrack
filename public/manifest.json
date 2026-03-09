@@ -1,7 +1,7 @@
 {
-  "name": "PhosTrack - CKD Assistant",
-  "short_name": "PhosTrack",
-  "description": "Phosphate and Dialysis tracker for CKD patients",
+  "name": "NephroLog — CKD Diary",
+  "short_name": "NephroLog",
+  "description": "Nutrition, dialysis and vitals diary for CKD patients",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",
