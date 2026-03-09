@@ -132,40 +132,69 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
             <input
               type="number"
               step="0.1"
+              min="20"
+              max="250"
               value={weight}
               onChange={e => setWeight(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-sm"
-              placeholder="0.0"
+              className={`w-full px-3 py-2 rounded-xl text-sm ${weight && (parseFloat(weight) < 20 || parseFloat(weight) > 250) ? 'ring-2 ring-red-500' : ''}`}
+              placeholder="70.0"
             />
+            {weight && (parseFloat(weight) < 20 || parseFloat(weight) > 250) && (
+              <p className="text-[10px] text-red-400">20–250 кг</p>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-500 uppercase">САД</label>
             <input
               type="number"
+              min="60"
+              max="250"
               value={systolic}
               onChange={e => setSystolic(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-sm"
+              className={`w-full px-3 py-2 rounded-xl text-sm ${systolic && (parseInt(systolic) < 60 || parseInt(systolic) > 250) ? 'ring-2 ring-red-500' : ''}`}
               placeholder="120"
             />
+            {systolic && (parseInt(systolic) < 60 || parseInt(systolic) > 250) && (
+              <p className="text-[10px] text-red-400">60–250</p>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-500 uppercase">ДАД</label>
             <input
               type="number"
+              min="40"
+              max="150"
               value={diastolic}
               onChange={e => setDiastolic(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl text-sm"
+              className={`w-full px-3 py-2 rounded-xl text-sm ${diastolic && (parseInt(diastolic) < 40 || parseInt(diastolic) > 150) ? 'ring-2 ring-red-500' : ''}`}
               placeholder="80"
             />
+            {diastolic && (parseInt(diastolic) < 40 || parseInt(diastolic) > 150) && (
+              <p className="text-[10px] text-red-400">40–150</p>
+            )}
           </div>
         </div>
-        <button
-          onClick={saveVitals}
-          disabled={!weight && !systolic && !diastolic}
-          className="w-full mt-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Save className="w-4 h-4" /> Сохранить замеры
-        </button>
+        {(() => {
+          const allFilled = weight && systolic && diastolic;
+          const weightOk = !weight || (parseFloat(weight) >= 20 && parseFloat(weight) <= 250);
+          const systolicOk = !systolic || (parseInt(systolic) >= 60 && parseInt(systolic) <= 250);
+          const diastolicOk = !diastolic || (parseInt(diastolic) >= 40 && parseInt(diastolic) <= 150);
+          const valid = allFilled && weightOk && systolicOk && diastolicOk;
+          return (
+            <button
+              onClick={saveVitals}
+              disabled={!valid}
+              className={`w-full mt-4 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                valid
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-900/30 cursor-pointer'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+              }`}
+            >
+              <Save className="w-4 h-4" />
+              {allFilled ? 'Сохранить замеры' : 'Заполните все поля'}
+            </button>
+          );
+        })()}
       </div>
 
       {/* Exchanges List */}
