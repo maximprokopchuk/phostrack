@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { DailyStats, PrimaryMetric, MetricLimits } from '../types';
-import { METRICS, metricByKey } from '../metrics';
+import { METRICS, metricByKey, MetricConfig } from '../metrics';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Zap, Droplets } from 'lucide-react';
+
+const KBJU_KEYS = new Set(['calories', 'protein', 'fat', 'carbs']);
+const ELECTROLYTE_KEYS = new Set(['phosphorus', 'potassium', 'sodium', 'magnesium']);
 
 interface DashboardProps {
   stats: DailyStats;
@@ -77,7 +80,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats, primaryMetric, metr
         }
       </button>
 
-      {/* Expandable: all other metrics */}
+      {/* Expandable: all other metrics grouped */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -86,8 +89,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats, primaryMetric, metr
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="pt-4 space-y-3">
-              {METRICS.filter(m => m.key !== primaryMetric).map(m => {
+            {(() => {
+              const rest = METRICS.filter(m => m.key !== primaryMetric);
+              const kbju = rest.filter(m => KBJU_KEYS.has(m.key));
+              const electro = rest.filter(m => ELECTROLYTE_KEYS.has(m.key));
+
+              const renderRow = (m: MetricConfig) => {
                 const v = m.getStatsValue(stats);
                 const lim = metricLimits[m.key];
                 const p = lim ? Math.min((v / lim) * 100, 100) : null;
@@ -110,8 +117,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats, primaryMetric, metr
                     )}
                   </div>
                 );
-              })}
-            </div>
+              };
+
+              return (
+                <div className="pt-4 space-y-5">
+                  {kbju.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">
+                        <Zap className="w-3 h-3 text-amber-500" /> КБЖУ
+                      </div>
+                      <div className="space-y-3">{kbju.map(renderRow)}</div>
+                    </div>
+                  )}
+                  {electro.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">
+                        <Droplets className="w-3 h-3 text-blue-400" /> Электролиты и фосфор
+                      </div>
+                      <div className="space-y-3">{electro.map(renderRow)}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
           </motion.div>
         )}
       </AnimatePresence>
