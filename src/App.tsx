@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { FoodLogger } from './components/FoodLogger';
 import { LogList } from './components/LogList';
@@ -6,9 +6,70 @@ import { DialysisTracker } from './components/DialysisTracker';
 import { HistoryView } from './components/HistoryView';
 import { FoodItem, DailyStats, PhosphateEstimate, DayRecord, DialysisExchange, DailyVitals, PrimaryMetric, MetricLimits } from './types';
 import { METRICS, metricByKey } from './metrics';
-import { Settings, Activity, LayoutDashboard, Droplets, CalendarCheck, History } from 'lucide-react';
+import { Settings, LayoutDashboard, Droplets, CalendarCheck, History, BookOpen, Sparkles } from 'lucide-react';
+import { RecommendationsModal } from './components/RecommendationsModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { startOfDay, format } from 'date-fns';
+
+const MOTIVATIONS = [
+  { emoji: '🌅', text: 'Диализ — это не конец пути, а его новая глава. Каждый прожитый день наполнен смыслом — даже если кажется обычным.' },
+  { emoji: '💪', text: 'Ты справляешься с тем, с чем справляются единицы. Это требует огромной силы — и ты носишь её в себе каждый день.' },
+  { emoji: '🏠', text: 'Перитонеальный диализ — это свобода. Ты лечишься дома, в своём темпе, в своей жизни. Это сила, а не ограничение.' },
+  { emoji: '❤️', text: 'Рядом с тобой люди, которые тебя любят. Ты нужен им — именно таким, какой ты есть прямо сейчас.' },
+  { emoji: '✨', text: 'Нечего бояться. Медицина шагнула далеко вперёд, и тысячи людей на перитонеальном диализе живут активно и радуются жизни.' },
+  { emoji: '🎯', text: 'Следить за питанием — это не ограничение, а забота о себе. Каждый правильный выбор на тарелке — маленькая, но настоящая победа.' },
+  { emoji: '🌊', text: 'Трудности закаляют, а не ломают. Ты уже прошёл через столько — и стоишь здесь. Это не слабость, это стойкость.' },
+  { emoji: '☀️', text: 'Позволь себе радоваться мелочам — утреннему кофе, разговору с близким, хорошей книге. Полная жизнь — это жизнь настоящая.' },
+  { emoji: '🦋', text: 'Диализ — часть твоей жизни, но далеко не вся она. Ты — намного, намного больше, чем твой диагноз.' },
+  { emoji: '🌙', text: 'Пока ты спишь, аппарат делает свою работу. Ты просыпаешься — и день твой. Это и есть свобода перитонеального диализа.' },
+  { emoji: '🔥', text: 'Люди на диализе получают образование, растят детей, строят бизнес и влюбляются. Твои возможности — не позади, они всё ещё впереди.' },
+  { emoji: '🗓️', text: 'Ты сам выстраиваешь своё расписание. Перитонеальный диализ даёт тебе это право — распоряжаться своим временем.' },
+  { emoji: '🎶', text: 'Жизнь не стала меньше — она стала иной. И в этой новой жизни всё равно есть место музыке, смеху и теплу.' },
+  { emoji: '🧭', text: 'Ты знаешь своё тело лучше, чем кто-либо. Ты знаешь свои пределы и как их расширять. Это мудрость, которую не купить.' },
+  { emoji: '🌍', text: 'С перитонеальным диализом люди путешествуют, берут расходники с собой и видят мир. Это не клетка — это просто чемодан побольше.' },
+  { emoji: '💙', text: 'Каждое утро, которое ты встречаешь — это ещё один шанс. Ещё один день, который принадлежит тебе.' },
+  { emoji: '🌱', text: 'Ты вложил столько усилий в своё здоровье — это видно. Организм чувствует заботу. Продолжай — это работает.' },
+  { emoji: '⭐', text: 'Самое сложное — это принятие. Ты уже это сделал. Дальше — просто жить. И это прекрасно.' },
+  { emoji: '🎉', text: 'Сегодня хороший день уже только потому, что ты в нём. Дай себе это признать.' },
+  { emoji: '🕊️', text: 'Страх уходит, когда живёшь настоящим. Не завтра, не вчера — прямо сейчас ты в порядке. И это главное.' },
+  { emoji: '🧘', text: 'Лечиться дома — значит оставаться в своей среде, рядом с близкими. Это не просто удобство, это качество жизни.' },
+  { emoji: '🌟', text: 'Каждый замер, каждый дневник, каждое взвешивание — это не рутина. Это ты берёшь своё здоровье в собственные руки.' },
+];
+
+function MotivationCard() {
+  const [idx, setIdx] = useState(() => Math.floor(Math.random() * MOTIVATIONS.length));
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIdx(i => (i + 1) % MOTIVATIONS.length);
+        setVisible(true);
+      }, 400);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const m = MOTIVATIONS[idx];
+  return (
+    <div className="mt-12 p-6 bg-emerald-900/10 rounded-3xl border border-emerald-900/20 flex gap-4 shadow-sm overflow-hidden">
+      <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-emerald-400 flex-shrink-0 mt-0.5">
+        <Sparkles className="w-5 h-5" />
+      </div>
+      <div
+        className="transition-opacity duration-400"
+        style={{ opacity: visible ? 1 : 0 }}
+      >
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-base leading-none">{m.emoji}</span>
+          <h4 className="font-bold text-emerald-100 text-sm">На сегодня</h4>
+        </div>
+        <p className="text-sm text-emerald-300/80 leading-relaxed">{m.text}</p>
+      </div>
+    </div>
+  );
+}
 
 type Tab = 'phosphorus' | 'dialysis' | 'history';
 
@@ -32,6 +93,7 @@ export default function App() {
     () => (localStorage.getItem('phostrack_primary_metric') as PrimaryMetric) ?? 'calories'
   );
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRecommendationsOpen, setIsRecommendationsOpen] = useState(false);
   const [isCloseDayOpen, setIsCloseDayOpen] = useState(false);
   const [dayStart, setDayStart] = useState<number>(() => {
     const saved = localStorage.getItem('phostrack_day_start');
@@ -197,6 +259,14 @@ export default function App() {
           </div>
           <div className="flex items-center gap-1">
             <button
+              onClick={() => setIsRecommendationsOpen(true)}
+              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-xl transition-all"
+              title="Рекомендации по питанию"
+              aria-label="Рекомендации по питанию"
+            >
+              <BookOpen className="w-5 h-5" />
+            </button>
+            <button
               onClick={() => setIsCloseDayOpen(true)}
               className="p-2 text-emerald-400 border border-emerald-800/50 bg-emerald-900/20 hover:bg-emerald-900/40 rounded-xl transition-all"
               title="Завершить день"
@@ -230,17 +300,7 @@ export default function App() {
               </div>
               <LogList items={logs} onDelete={deleteFood} primaryMetric={primaryMetric} />
 
-              <div className="mt-12 p-6 bg-amber-900/10 rounded-3xl border border-amber-900/20 flex gap-4 shadow-sm">
-                <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-amber-400 flex-shrink-0">
-                  <Activity className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-amber-100 mb-1">ХБП 5 стадия: Важные правила</h4>
-                  <p className="text-sm text-amber-300/80 leading-relaxed">
-                    При 5 стадии почки почти не выводят фосфор. Избегайте <b>неорганических фосфатов</b> (пищевые добавки E338-E343), так как они всасываются полностью.
-                  </p>
-                </div>
-              </div>
+              <MotivationCard />
             </motion.div>
           )}
           {activeTab === 'dialysis' && (
@@ -388,6 +448,13 @@ export default function App() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Recommendations Modal */}
+      <AnimatePresence>
+        {isRecommendationsOpen && (
+          <RecommendationsModal onClose={() => setIsRecommendationsOpen(false)} />
         )}
       </AnimatePresence>
 
