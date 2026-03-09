@@ -3,6 +3,8 @@ export type PrimaryMetric =
   | 'protein'  | 'fat'  | 'carbs'
   | 'potassium' | 'sodium' | 'magnesium';
 
+export type MetricLimits = Partial<Record<PrimaryMetric, number>>;
+
 export interface FoodItem {
   id: string;
   name: string;

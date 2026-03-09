@@ -8,10 +8,10 @@ export interface MetricConfig {
   textClass: string;     // value text color
   barClass: string;      // progress bar color
   getStatsValue: (s: DailyStats) => number;
-  getStatsLimit?: (s: DailyStats) => number;
   getItemValue: (item: FoodItem) => number;
   getEstimateValue: (e: PhosphateEstimate) => number;
   round?: boolean;       // round to integer
+  defaultLimit?: number; // suggested placeholder for limit input
 }
 
 export const METRICS: MetricConfig[] = [
@@ -23,10 +23,10 @@ export const METRICS: MetricConfig[] = [
     textClass: 'text-amber-400',
     barClass: 'bg-amber-400',
     getStatsValue: s => s.totalCalories,
-    getStatsLimit: s => s.calorieLimit,
     getItemValue: i => i.calories,
     getEstimateValue: e => e.calories,
     round: true,
+    defaultLimit: 2000,
   },
   {
     key: 'phosphorus',
@@ -36,10 +36,10 @@ export const METRICS: MetricConfig[] = [
     textClass: 'text-emerald-400',
     barClass: 'bg-emerald-500',
     getStatsValue: s => s.totalMg,
-    getStatsLimit: s => s.limitMg,
     getItemValue: i => i.phosphateMg,
     getEstimateValue: e => e.phosphateMg,
     round: true,
+    defaultLimit: 800,
   },
   {
     key: 'protein',
@@ -51,6 +51,7 @@ export const METRICS: MetricConfig[] = [
     getStatsValue: s => s.totalProtein,
     getItemValue: i => i.proteinG,
     getEstimateValue: e => e.proteinG,
+    defaultLimit: 60,
   },
   {
     key: 'fat',
@@ -62,6 +63,7 @@ export const METRICS: MetricConfig[] = [
     getStatsValue: s => s.totalFat,
     getItemValue: i => i.fatG,
     getEstimateValue: e => e.fatG,
+    defaultLimit: 70,
   },
   {
     key: 'carbs',
@@ -73,6 +75,7 @@ export const METRICS: MetricConfig[] = [
     getStatsValue: s => s.totalCarbs,
     getItemValue: i => i.carbsG,
     getEstimateValue: e => e.carbsG,
+    defaultLimit: 250,
   },
   {
     key: 'potassium',
@@ -85,6 +88,7 @@ export const METRICS: MetricConfig[] = [
     getItemValue: i => i.potassiumMg,
     getEstimateValue: e => e.potassiumMg,
     round: true,
+    defaultLimit: 2000,
   },
   {
     key: 'sodium',
@@ -97,6 +101,7 @@ export const METRICS: MetricConfig[] = [
     getItemValue: i => i.sodiumMg,
     getEstimateValue: e => e.sodiumMg,
     round: true,
+    defaultLimit: 1500,
   },
   {
     key: 'magnesium',
@@ -109,6 +114,7 @@ export const METRICS: MetricConfig[] = [
     getItemValue: i => i.magnesiumMg,
     getEstimateValue: e => e.magnesiumMg,
     round: true,
+    defaultLimit: 300,
   },
 ];
 

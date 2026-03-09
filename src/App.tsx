@@ -4,7 +4,8 @@ import { FoodLogger } from './components/FoodLogger';
 import { LogList } from './components/LogList';
 import { DialysisTracker } from './components/DialysisTracker';
 import { HistoryView } from './components/HistoryView';
-import { FoodItem, DailyStats, PhosphateEstimate, DayRecord, DialysisExchange, DailyVitals, PrimaryMetric } from './types';
+import { FoodItem, DailyStats, PhosphateEstimate, DayRecord, DialysisExchange, DailyVitals, PrimaryMetric, MetricLimits } from './types';
+import { METRICS, metricByKey } from './metrics';
 import { Settings, Activity, LayoutDashboard, Droplets, CalendarCheck, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { startOfDay, format } from 'date-fns';
@@ -14,15 +15,22 @@ type Tab = 'phosphorus' | 'dialysis' | 'history';
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('phosphorus');
   const [logs, setLogs] = useState<FoodItem[]>([]);
-  const [limit, setLimit] = useState(800);
-  const [calorieLimit, setCalorieLimit] = useState(2000);
+  const [metricLimits, setMetricLimits] = useState<MetricLimits>(() => {
+    try {
+      const saved = localStorage.getItem('phostrack_metric_limits');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    // Migrate from old individual keys
+    const oldPhosphor = localStorage.getItem('phostrack_limit');
+    const oldCal = localStorage.getItem('phostrack_cal_limit');
+    return {
+      phosphorus: oldPhosphor ? parseInt(oldPhosphor, 10) : 800,
+      calories: oldCal ? parseInt(oldCal, 10) : 2000,
+    };
+  });
   const [primaryMetric, setPrimaryMetric] = useState<PrimaryMetric>(
     () => (localStorage.getItem('phostrack_primary_metric') as PrimaryMetric) ?? 'calories'
   );
-  const setAndSaveMetric = (m: PrimaryMetric) => {
-    setPrimaryMetric(m);
-    localStorage.setItem('phostrack_primary_metric', m);
-  };
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCloseDayOpen, setIsCloseDayOpen] = useState(false);
   const [dayStart, setDayStart] = useState<number>(() => {
@@ -46,9 +54,6 @@ export default function App() {
   // Load data
   useEffect(() => {
     const savedLogs = localStorage.getItem('phostrack_logs');
-    const savedLimit = localStorage.getItem('phostrack_limit');
-    const savedCalLimit = localStorage.getItem('phostrack_cal_limit');
-
     if (savedLogs) {
       try {
         const parsed = JSON.parse(savedLogs);
@@ -57,17 +62,17 @@ export default function App() {
         console.error('Failed to load logs', e);
       }
     }
-
-    if (savedLimit) setLimit(parseInt(savedLimit, 10));
-    if (savedCalLimit) setCalorieLimit(parseInt(savedCalLimit, 10));
   }, []);
 
-  // Save logs and settings
+  // Save logs
   useEffect(() => {
     localStorage.setItem('phostrack_logs', JSON.stringify(logs));
-    localStorage.setItem('phostrack_limit', limit.toString());
-    localStorage.setItem('phostrack_cal_limit', calorieLimit.toString());
-  }, [logs, limit, calorieLimit]);
+  }, [logs]);
+
+  // Save metric limits
+  useEffect(() => {
+    localStorage.setItem('phostrack_metric_limits', JSON.stringify(metricLimits));
+  }, [metricLimits]);
 
   // Persist dayStart
   useEffect(() => {
@@ -84,13 +89,15 @@ export default function App() {
     const totalMagnesium = logs.reduce((sum, item) => sum + (item.magnesiumMg || 0), 0);
     const totalSodium = logs.reduce((sum, item) => sum + (item.sodiumMg || 0), 0);
 
+    const phosphorLimit = metricLimits.phosphorus ?? 800;
+    const calLimit = metricLimits.calories ?? 2000;
     return {
       totalMg: total,
-      limitMg: limit,
-      remainingMg: Math.max(0, limit - total),
-      percentage: (total / limit) * 100,
+      limitMg: phosphorLimit,
+      remainingMg: Math.max(0, phosphorLimit - total),
+      percentage: (total / phosphorLimit) * 100,
       totalCalories: totalCals,
-      calorieLimit: calorieLimit,
+      calorieLimit: calLimit,
       totalProtein,
       totalFat,
       totalCarbs,
@@ -98,7 +105,7 @@ export default function App() {
       totalMagnesium,
       totalSodium
     };
-  }, [logs, limit, calorieLimit]);
+  }, [logs, metricLimits]);
 
   const addFood = (estimate: PhosphateEstimate) => {
     const newItem: FoodItem = {
@@ -217,7 +224,7 @@ export default function App() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <Dashboard stats={stats} primaryMetric={primaryMetric} onMetricChange={setAndSaveMetric} />
+              <Dashboard stats={stats} primaryMetric={primaryMetric} metricLimits={metricLimits} />
               <div className="mb-10">
                 <FoodLogger onAdd={addFood} primaryMetric={primaryMetric} />
               </div>
@@ -291,7 +298,7 @@ export default function App() {
       {/* Settings Modal */}
       <AnimatePresence>
         {isSettingsOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -300,43 +307,83 @@ export default function App() {
               className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-slate-900 rounded-3xl p-8 shadow-2xl"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              className="relative w-full sm:max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] flex flex-col"
             >
-              <h2 className="text-2xl font-bold text-white mb-6">Настройки</h2>
+              <div className="p-6 border-b border-slate-800 flex-shrink-0">
+                <h2 className="text-xl font-bold text-white">Настройки</h2>
+              </div>
 
-              <div className="space-y-6">
+              <div className="overflow-y-auto flex-1 p-6 space-y-6">
+                {/* Primary metric */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">
-                    Дневной лимит фосфора (мг)
-                  </label>
-                  <input
-                    type="number"
-                    value={limit}
-                    onChange={(e) => setLimit(parseInt(e.target.value, 10) || 0)}
-                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-lg text-white"
-                  />
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Основной показатель</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {METRICS.map(m => (
+                      <button
+                        key={m.key}
+                        onClick={() => {
+                          setPrimaryMetric(m.key);
+                          localStorage.setItem('phostrack_primary_metric', m.key);
+                        }}
+                        className={[
+                          'py-2 rounded-xl text-[10px] font-bold transition-all leading-tight',
+                          primaryMetric === m.key
+                            ? m.activeClass + ' shadow'
+                            : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                        ].join(' ')}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
+                {/* Limits */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">
-                    Дневной лимит калорий (ккал)
-                  </label>
-                  <input
-                    type="number"
-                    value={calorieLimit}
-                    onChange={(e) => setCalorieLimit(parseInt(e.target.value, 10) || 0)}
-                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg text-white"
-                  />
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Дневные лимиты <span className="text-slate-600 normal-case">(опционально)</span></p>
+                  <div className="space-y-2">
+                    {METRICS.map(m => {
+                      const val = metricLimits[m.key];
+                      return (
+                        <div key={m.key} className="flex items-center gap-2">
+                          <span className={`text-xs font-bold w-20 flex-shrink-0 ${metricByKey[m.key].textClass}`}>{m.label}</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={val ?? ''}
+                            placeholder={m.defaultLimit ? String(m.defaultLimit) : '—'}
+                            onChange={e => {
+                              const n = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                              setMetricLimits(prev => ({ ...prev, [m.key]: n }));
+                            }}
+                            className="flex-1 px-3 py-2 rounded-xl text-sm"
+                          />
+                          <span className="text-xs text-slate-500 w-8 flex-shrink-0">{m.unit}</span>
+                          {val !== undefined && (
+                            <button
+                              onClick={() => setMetricLimits(prev => { const next = { ...prev }; delete next[m.key]; return next; })}
+                              className="text-slate-600 hover:text-red-400 transition-colors text-xs font-bold px-1"
+                              title="Убрать лимит"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
+              </div>
 
+              <div className="p-6 border-t border-slate-800 flex-shrink-0">
                 <button
                   onClick={() => setIsSettingsOpen(false)}
-                  className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-colors"
+                  className="w-full py-3 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-colors"
                 >
-                  Сохранить и закрыть
+                  Готово
                 </button>
               </div>
             </motion.div>
