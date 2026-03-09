@@ -58,3 +58,15 @@ export interface DailyVitals {
   systolic: number;
   diastolic: number;
 }
+
+export interface DayRecord {
+  id: string;
+  dayStart: number;
+  dayEnd: number;
+  logs: FoodItem[];
+  exchanges: DialysisExchange[];
+  vitals: DailyVitals | null;
+  totalPhosphateMg: number;
+  totalCalories: number;
+  totalUF: number;
+}

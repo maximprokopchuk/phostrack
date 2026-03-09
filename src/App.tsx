@@ -3,12 +3,13 @@ import { Dashboard } from './components/Dashboard';
 import { FoodLogger } from './components/FoodLogger';
 import { LogList } from './components/LogList';
 import { DialysisTracker } from './components/DialysisTracker';
-import { FoodItem, DailyStats, PhosphateEstimate } from './types';
-import { Settings, Activity, LayoutDashboard, Droplets, CalendarCheck } from 'lucide-react';
+import { HistoryView } from './components/HistoryView';
+import { FoodItem, DailyStats, PhosphateEstimate, DayRecord, DialysisExchange, DailyVitals } from './types';
+import { Settings, Activity, LayoutDashboard, Droplets, CalendarCheck, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { startOfDay } from 'date-fns';
+import { startOfDay, format } from 'date-fns';
 
-type Tab = 'phosphorus' | 'dialysis';
+type Tab = 'phosphorus' | 'dialysis' | 'history';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('phosphorus');
@@ -20,6 +21,14 @@ export default function App() {
   const [dayStart, setDayStart] = useState<number>(() => {
     const saved = localStorage.getItem('phostrack_day_start');
     return saved ? parseInt(saved, 10) : startOfDay(new Date()).getTime();
+  });
+  const [dayHistory, setDayHistory] = useState<DayRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('phostrack_day_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   // Force dark mode
@@ -107,7 +116,56 @@ export default function App() {
   };
 
   const closeDay = () => {
-    const newStart = Date.now();
+    const now = Date.now();
+
+    // Capture food logs for this day
+    let dayLogs: FoodItem[] = [];
+    try {
+      const rawLogs = localStorage.getItem('phostrack_logs');
+      if (rawLogs) {
+        const allLogs: FoodItem[] = JSON.parse(rawLogs);
+        dayLogs = allLogs.filter(l => l.timestamp >= dayStart && l.timestamp < now);
+      }
+    } catch { /* ignore */ }
+
+    // Capture dialysis exchanges for this day
+    let dayExchanges: DialysisExchange[] = [];
+    try {
+      const rawExchanges = localStorage.getItem('phostrack_exchanges');
+      if (rawExchanges) {
+        const allExchanges: DialysisExchange[] = JSON.parse(rawExchanges);
+        dayExchanges = allExchanges.filter(e => e.timestamp >= dayStart && e.timestamp < now);
+      }
+    } catch { /* ignore */ }
+
+    // Find vitals for this day (match by date string of dayStart)
+    let dayVitals: DailyVitals | null = null;
+    try {
+      const rawVitals = localStorage.getItem('phostrack_vitals');
+      if (rawVitals) {
+        const allVitals: DailyVitals[] = JSON.parse(rawVitals);
+        const dayDateStr = format(dayStart, 'yyyy-MM-dd');
+        dayVitals = allVitals.find(v => v.date === dayDateStr) ?? null;
+      }
+    } catch { /* ignore */ }
+
+    const record: DayRecord = {
+      id: crypto.randomUUID(),
+      dayStart,
+      dayEnd: now,
+      logs: dayLogs,
+      exchanges: dayExchanges,
+      vitals: dayVitals,
+      totalPhosphateMg: dayLogs.reduce((s, l) => s + l.phosphateMg, 0),
+      totalCalories: dayLogs.reduce((s, l) => s + (l.calories || 0), 0),
+      totalUF: dayExchanges.reduce((s, e) => s + e.uf, 0),
+    };
+
+    const updatedHistory = [record, ...dayHistory];
+    localStorage.setItem('phostrack_day_history', JSON.stringify(updatedHistory));
+    setDayHistory(updatedHistory);
+
+    const newStart = now;
     setDayStart(newStart);
     localStorage.setItem('phostrack_day_start', String(newStart));
     setLogs([]);
@@ -145,7 +203,7 @@ export default function App() {
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
-          {activeTab === 'phosphorus' ? (
+          {activeTab === 'phosphorus' && (
             <motion.div
               key="phosphorus"
               initial={{ opacity: 0, y: 10 }}
@@ -171,7 +229,8 @@ export default function App() {
                 </div>
               </div>
             </motion.div>
-          ) : (
+          )}
+          {activeTab === 'dialysis' && (
             <motion.div
               key="dialysis"
               initial={{ opacity: 0, y: 10 }}
@@ -180,6 +239,17 @@ export default function App() {
               transition={{ duration: 0.2 }}
             >
               <DialysisTracker dayStart={dayStart} />
+            </motion.div>
+          )}
+          {activeTab === 'history' && (
+            <motion.div
+              key="history"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <HistoryView dayHistory={dayHistory} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -201,6 +271,13 @@ export default function App() {
           >
             <Droplets className="w-6 h-6" />
             <span className="text-[10px] font-bold uppercase">Диализ</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'history' ? 'text-emerald-500 scale-110' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <History className="w-6 h-6" />
+            <span className="text-[10px] font-bold uppercase">История</span>
           </button>
         </div>
       </nav>
