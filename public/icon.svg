@@ -38,12 +38,4 @@
         text-anchor="middle"
         dominant-baseline="auto">P</text>
 
-  <!-- Subtle atomic number 15 -->
-  <text x="338" y="198"
-        font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif"
-        font-weight="700"
-        font-size="52"
-        fill="white"
-        fill-opacity="0.45"
-        text-anchor="middle">15</text>
 </svg>
