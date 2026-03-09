@@ -82,6 +82,7 @@ export const LogList: React.FC<LogListProps> = ({ items, onDelete, primaryMetric
                 <button
                   onClick={() => onDelete(item.id)}
                   className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-900/20 rounded-lg transition-all"
+                  aria-label="Удалить"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
