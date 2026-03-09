@@ -156,6 +156,12 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ dayHistory }) => {
                             <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Давление</p>
                             <p className="text-sm font-bold text-slate-200">{record.vitals.systolic}/{record.vitals.diastolic}</p>
                           </div>
+                          {record.vitals.temperature ? (
+                            <div className="flex-1 bg-slate-800/40 rounded-xl p-3 text-center">
+                              <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Темп.</p>
+                              <p className="text-sm font-bold text-slate-200">{record.vitals.temperature} °C</p>
+                            </div>
+                          ) : null}
                         </div>
                       )}
                     </div>
