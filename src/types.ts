@@ -57,6 +57,7 @@ export interface DailyVitals {
   weight: number;
   systolic: number;
   diastolic: number;
+  temperature: number;
 }
 
 export interface DayRecord {

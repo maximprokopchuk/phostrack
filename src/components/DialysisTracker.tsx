@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DialysisExchange, DailyVitals } from '../types';
-import { Plus, Trash2, Activity, Scale, Droplets, Clock, Save } from 'lucide-react';
+import { Plus, Trash2, Activity, Scale, Droplets, Clock, Save, Thermometer } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
@@ -22,6 +22,8 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
   const [weight, setWeight] = useState('');
   const [systolic, setSystolic] = useState('');
   const [diastolic, setDiastolic] = useState('');
+  const [temperature, setTemperature] = useState('');
+  const [savedPulse, setSavedPulse] = useState(false);
 
   // Load data
   useEffect(() => {
@@ -30,6 +32,18 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
     if (savedExchanges) setExchanges(JSON.parse(savedExchanges));
     if (savedVitals) setVitals(JSON.parse(savedVitals));
   }, []);
+
+  // Pre-fill form with today's saved vitals
+  useEffect(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const saved = vitals.find(v => v.date === today);
+    if (saved) {
+      setWeight(saved.weight ? String(saved.weight) : '');
+      setSystolic(saved.systolic ? String(saved.systolic) : '');
+      setDiastolic(saved.diastolic ? String(saved.diastolic) : '');
+      setTemperature(saved.temperature ? String(saved.temperature) : '');
+    }
+  }, [vitals]);
 
   // Save data
   useEffect(() => {
@@ -64,7 +78,8 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
       date: today,
       weight: parseFloat(weight) || 0,
       systolic: parseInt(systolic) || 0,
-      diastolic: parseInt(diastolic) || 0
+      diastolic: parseInt(diastolic) || 0,
+      temperature: parseFloat(temperature) || 0
     };
 
     // Update or add
@@ -76,6 +91,9 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
     } else {
       setVitals([newVital, ...vitals]);
     }
+
+    setSavedPulse(true);
+    setTimeout(() => setSavedPulse(false), 2000);
   };
 
   const todayVitals = vitals.find(v => v.date === format(new Date(), 'yyyy-MM-dd'));
@@ -85,7 +103,7 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
   return (
     <div className="space-y-6">
       {/* Daily Vitals Summary */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="glass-card p-4 rounded-2xl">
           <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase mb-2">
             <Scale className="w-4 h-4 text-blue-400" /> Вес
@@ -100,10 +118,19 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
             <Activity className="w-4 h-4 text-red-400" /> Давление
           </div>
           <div className="flex items-end gap-1">
-            <span className="text-2xl font-black text-white">
+            <span className="text-xl font-black text-white">
               {todayVitals ? `${todayVitals.systolic}/${todayVitals.diastolic}` : '--/--'}
             </span>
             <span className="text-xs text-slate-500 mb-1">мм</span>
+          </div>
+        </div>
+        <div className="glass-card p-4 rounded-2xl">
+          <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase mb-2">
+            <Thermometer className="w-4 h-4 text-orange-400" /> Темп.
+          </div>
+          <div className="flex items-end gap-1">
+            <span className="text-2xl font-black text-white">{todayVitals?.temperature || '--'}</span>
+            <span className="text-xs text-slate-500 mb-1">°C</span>
           </div>
         </div>
       </div>
@@ -125,10 +152,24 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
 
       {/* Vitals Form */}
       <div className="glass-card p-6 rounded-3xl">
-        <h3 className="text-sm font-bold text-white mb-4">Замер показателей</h3>
-        <div className="grid grid-cols-3 gap-3" onKeyDown={e => { if (e.key === 'Enter') saveVitals(); }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-white">Замер показателей</h3>
+          {(weight || systolic || diastolic || temperature) && (
+            <button
+              onClick={() => { setWeight(''); setSystolic(''); setDiastolic(''); setTemperature(''); }}
+              className="text-[10px] font-bold text-slate-500 hover:text-slate-300 transition-colors uppercase tracking-wide"
+            >
+              Сброс
+            </button>
+          )}
+        </div>
+
+        {/* Row 1: Weight + Temperature */}
+        <div className="grid grid-cols-2 gap-3 mb-3" onKeyDown={e => { if (e.key === 'Enter') saveVitals(); }}>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase">Вес (кг)</label>
+            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+              <Scale className="w-3 h-3 text-blue-400" /> Вес, кг
+            </label>
             <input
               type="number"
               step="0.1"
@@ -144,54 +185,88 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
             )}
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase">САД</label>
+            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+              <Thermometer className="w-3 h-3 text-orange-400" /> Температура, °C
+            </label>
             <input
               type="number"
-              min="60"
-              max="250"
-              value={systolic}
-              onChange={e => setSystolic(e.target.value)}
-              className={`w-full px-3 py-2 rounded-xl text-sm ${systolic && (parseInt(systolic) < 60 || parseInt(systolic) > 250) ? 'ring-2 ring-red-500' : ''}`}
-              placeholder="120"
+              step="0.1"
+              min="35"
+              max="42"
+              value={temperature}
+              onChange={e => setTemperature(e.target.value)}
+              className={`w-full px-3 py-2 rounded-xl text-sm ${temperature && (parseFloat(temperature) < 35 || parseFloat(temperature) > 42) ? 'ring-2 ring-red-500' : ''}`}
+              placeholder="36.6"
             />
-            {systolic && (parseInt(systolic) < 60 || parseInt(systolic) > 250) && (
-              <p className="text-[10px] text-red-400">60–250</p>
-            )}
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase">ДАД</label>
-            <input
-              type="number"
-              min="40"
-              max="150"
-              value={diastolic}
-              onChange={e => setDiastolic(e.target.value)}
-              className={`w-full px-3 py-2 rounded-xl text-sm ${diastolic && (parseInt(diastolic) < 40 || parseInt(diastolic) > 150) ? 'ring-2 ring-red-500' : ''}`}
-              placeholder="80"
-            />
-            {diastolic && (parseInt(diastolic) < 40 || parseInt(diastolic) > 150) && (
-              <p className="text-[10px] text-red-400">40–150</p>
+            {temperature && (parseFloat(temperature) < 35 || parseFloat(temperature) > 42) && (
+              <p className="text-[10px] text-red-400">35.0–42.0 °C</p>
             )}
           </div>
         </div>
+
+        {/* Row 2: Blood pressure group */}
+        <div className="space-y-2" onKeyDown={e => { if (e.key === 'Enter') saveVitals(); }}>
+          <p className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+            <Activity className="w-3 h-3 text-red-400" /> Артериальное давление, мм рт.ст.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-600 uppercase">Систолическое (верхнее)</label>
+              <input
+                type="number"
+                min="60"
+                max="250"
+                value={systolic}
+                onChange={e => setSystolic(e.target.value)}
+                className={`w-full px-3 py-2 rounded-xl text-sm ${systolic && (parseInt(systolic) < 60 || parseInt(systolic) > 250) ? 'ring-2 ring-red-500' : ''}`}
+                placeholder="120"
+              />
+              {systolic && (parseInt(systolic) < 60 || parseInt(systolic) > 250) && (
+                <p className="text-[10px] text-red-400">60–250</p>
+              )}
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-600 uppercase">Диастолическое (нижнее)</label>
+              <input
+                type="number"
+                min="40"
+                max="150"
+                value={diastolic}
+                onChange={e => setDiastolic(e.target.value)}
+                className={`w-full px-3 py-2 rounded-xl text-sm ${diastolic && (parseInt(diastolic) < 40 || parseInt(diastolic) > 150) ? 'ring-2 ring-red-500' : ''}`}
+                placeholder="80"
+              />
+              {diastolic && (parseInt(diastolic) < 40 || parseInt(diastolic) > 150) && (
+                <p className="text-[10px] text-red-400">40–150</p>
+              )}
+            </div>
+          </div>
+        </div>
+
         {(() => {
-          const allFilled = weight && systolic && diastolic;
+          const allFilled = weight && systolic && diastolic && temperature;
           const weightOk = !weight || (parseFloat(weight) >= 20 && parseFloat(weight) <= 250);
           const systolicOk = !systolic || (parseInt(systolic) >= 60 && parseInt(systolic) <= 250);
           const diastolicOk = !diastolic || (parseInt(diastolic) >= 40 && parseInt(diastolic) <= 150);
-          const valid = allFilled && weightOk && systolicOk && diastolicOk;
+          const temperatureOk = !temperature || (parseFloat(temperature) >= 35 && parseFloat(temperature) <= 42);
+          const hasInvalid = (weight && !weightOk) || (systolic && !systolicOk) || (diastolic && !diastolicOk) || (temperature && !temperatureOk);
+          const valid = allFilled && weightOk && systolicOk && diastolicOk && temperatureOk;
           return (
             <button
               onClick={saveVitals}
               disabled={!valid}
               className={`w-full mt-4 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                valid
+                savedPulse
+                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-900/30 cursor-pointer'
+                  : valid
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-900/30 cursor-pointer'
+                  : hasInvalid
+                  ? 'bg-red-900/40 text-red-400 cursor-not-allowed'
                   : 'bg-slate-800 text-slate-500 cursor-not-allowed'
               }`}
             >
               <Save className="w-4 h-4" />
-              {allFilled ? 'Сохранить замеры' : 'Заполните все поля'}
+              {savedPulse ? 'Сохранено!' : hasInvalid ? 'Проверьте значения' : allFilled ? 'Сохранить замеры' : 'Заполните все поля'}
             </button>
           );
         })()}
