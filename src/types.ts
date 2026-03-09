@@ -1,3 +1,8 @@
+export type PrimaryMetric =
+  | 'calories' | 'phosphorus'
+  | 'protein'  | 'fat'  | 'carbs'
+  | 'potassium' | 'sodium' | 'magnesium';
+
 export interface FoodItem {
   id: string;
   name: string;

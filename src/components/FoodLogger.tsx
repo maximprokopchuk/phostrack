@@ -1,15 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { Search, Sparkles, Camera, Loader2, Plus, X } from 'lucide-react';
 import { estimatePhosphate, estimatePhosphateFromImage } from '../services/nutritionService';
-import { PhosphateEstimate } from '../types';
+import { PhosphateEstimate, PrimaryMetric } from '../types';
+import { metricByKey } from '../metrics';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
 
 interface FoodLoggerProps {
   onAdd: (estimate: PhosphateEstimate) => void;
+  primaryMetric: PrimaryMetric;
 }
 
-export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd }) => {
+export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd, primaryMetric }) => {
   const [input, setInput] = useState('');
   const [isEstimating, setIsEstimating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,24 +140,38 @@ export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd }) => {
               <X className="w-4 h-4" />
             </button>
 
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="font-bold text-white text-lg">{estimate.foodName}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={cn(
-                    "text-[10px] uppercase font-bold px-2 py-0.5 rounded-full",
-                    estimate.confidence === 'high' ? "bg-emerald-900/30 text-emerald-400" :
-                    estimate.confidence === 'medium' ? "bg-amber-900/30 text-amber-400" : "bg-slate-800 text-slate-400"
-                  )}>
-                    Уверенность: {estimate.confidence === 'high' ? 'Высокая' : estimate.confidence === 'medium' ? 'Средняя' : 'Низкая'}
-                  </span>
+            {(() => {
+              const m = metricByKey[primaryMetric];
+              const primaryVal = m.getEstimateValue(estimate);
+              const displayPrimary = m.round ? Math.round(primaryVal) : primaryVal.toFixed(1);
+              // secondary: show calories if primary is not calories, else phosphorus
+              const sec = primaryMetric === 'calories' ? metricByKey['phosphorus'] : metricByKey['calories'];
+              const secVal = sec.getEstimateValue(estimate);
+              return (
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-bold text-white text-lg">{estimate.foodName}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={cn(
+                        "text-[10px] uppercase font-bold px-2 py-0.5 rounded-full",
+                        estimate.confidence === 'high' ? "bg-emerald-900/30 text-emerald-400" :
+                        estimate.confidence === 'medium' ? "bg-amber-900/30 text-amber-400" : "bg-slate-800 text-slate-400"
+                      )}>
+                        {estimate.confidence === 'high' ? 'Высокая' : estimate.confidence === 'medium' ? 'Средняя' : 'Низкая'} точность
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-2xl font-bold ${m.textClass}`}>
+                      {displayPrimary} <span className="text-sm font-normal text-slate-400">{m.unit}</span>
+                    </p>
+                    <p className="text-sm font-medium text-slate-400">
+                      {sec.round ? Math.round(secVal) : secVal.toFixed(1)} {sec.unit}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-emerald-600">{estimate.phosphateMg} <span className="text-sm font-normal text-slate-400">мг</span></p>
-                <p className="text-sm font-medium text-slate-400">{estimate.calories} ккал</p>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Breakdown Grid */}
             <div className="grid grid-cols-2 gap-4 mb-4">

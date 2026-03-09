@@ -4,7 +4,7 @@ import { FoodLogger } from './components/FoodLogger';
 import { LogList } from './components/LogList';
 import { DialysisTracker } from './components/DialysisTracker';
 import { HistoryView } from './components/HistoryView';
-import { FoodItem, DailyStats, PhosphateEstimate, DayRecord, DialysisExchange, DailyVitals } from './types';
+import { FoodItem, DailyStats, PhosphateEstimate, DayRecord, DialysisExchange, DailyVitals, PrimaryMetric } from './types';
 import { Settings, Activity, LayoutDashboard, Droplets, CalendarCheck, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { startOfDay, format } from 'date-fns';
@@ -16,6 +16,13 @@ export default function App() {
   const [logs, setLogs] = useState<FoodItem[]>([]);
   const [limit, setLimit] = useState(800);
   const [calorieLimit, setCalorieLimit] = useState(2000);
+  const [primaryMetric, setPrimaryMetric] = useState<PrimaryMetric>(
+    () => (localStorage.getItem('phostrack_primary_metric') as PrimaryMetric) ?? 'calories'
+  );
+  const setAndSaveMetric = (m: PrimaryMetric) => {
+    setPrimaryMetric(m);
+    localStorage.setItem('phostrack_primary_metric', m);
+  };
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCloseDayOpen, setIsCloseDayOpen] = useState(false);
   const [dayStart, setDayStart] = useState<number>(() => {
@@ -210,11 +217,11 @@ export default function App() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <Dashboard stats={stats} />
+              <Dashboard stats={stats} primaryMetric={primaryMetric} onMetricChange={setAndSaveMetric} />
               <div className="mb-10">
-                <FoodLogger onAdd={addFood} />
+                <FoodLogger onAdd={addFood} primaryMetric={primaryMetric} />
               </div>
-              <LogList items={logs} onDelete={deleteFood} />
+              <LogList items={logs} onDelete={deleteFood} primaryMetric={primaryMetric} />
 
               <div className="mt-12 p-6 bg-amber-900/10 rounded-3xl border border-amber-900/20 flex gap-4 shadow-sm">
                 <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-amber-400 flex-shrink-0">

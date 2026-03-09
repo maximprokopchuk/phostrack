@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FoodItem } from '../types';
+import { FoodItem, PrimaryMetric } from '../types';
+import { metricByKey } from '../metrics';
 import { Trash2, Clock, Utensils } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -8,10 +9,12 @@ import { motion, AnimatePresence } from 'motion/react';
 interface LogListProps {
   items: FoodItem[];
   onDelete: (id: string) => void;
+  primaryMetric: PrimaryMetric;
 }
 
-export const LogList: React.FC<LogListProps> = ({ items, onDelete }) => {
+export const LogList: React.FC<LogListProps> = ({ items, onDelete, primaryMetric }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const metric = metricByKey[primaryMetric];
 
   const toggleItem = (id: string) => {
     const newSet = new Set(expandedItems);
@@ -69,7 +72,13 @@ export const LogList: React.FC<LogListProps> = ({ items, onDelete }) => {
               </div>
               
               <div className="flex items-center gap-4">
-                <p className="font-bold text-slate-300">{item.phosphateMg} <span className="text-[10px] font-normal text-slate-400 uppercase">мг</span></p>
+                <p className={`font-bold ${metric.textClass}`}>
+                  {metric.round
+                    ? Math.round(metric.getItemValue(item))
+                    : metric.getItemValue(item).toFixed(1)
+                  }{' '}
+                  <span className="text-[10px] font-normal text-slate-400 uppercase">{metric.unit}</span>
+                </p>
                 <button
                   onClick={() => onDelete(item.id)}
                   className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-900/20 rounded-lg transition-all"
