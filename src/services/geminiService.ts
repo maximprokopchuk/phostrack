@@ -1,141 +1,103 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { PhosphateEstimate } from "../types";
+import Anthropic from '@anthropic-ai/sdk';
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { z } from 'zod';
+import { PhosphateEstimate } from '../types';
 
-const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-const ai = new GoogleGenAI({ apiKey: apiKey || "" });
+const apiKey = process.env.ANTHROPIC_API_KEY || import.meta.env.VITE_ANTHROPIC_API_KEY;
 
-function parseSafeJSON(text: string | undefined): any {
-  if (!text) throw new Error("AI вернул пустой ответ");
-  
-  try {
-    // Remove potential markdown formatting
-    const cleanText = text.replace(/```json\n?|\n?```/g, '').trim();
-    return JSON.parse(cleanText);
-  } catch (e) {
-    console.error("Gemini JSON Parse Error. Raw text:", text);
-    throw new Error("AI вернул данные в неверном формате. Попробуйте еще раз.");
+const client = new Anthropic({
+  apiKey: apiKey || '',
+  dangerouslyAllowBrowser: true,
+});
+
+const PhosphateEstimateSchema = z.object({
+  foodName: z.string(),
+  phosphateMg: z.number(),
+  calories: z.number(),
+  proteinG: z.number(),
+  fatG: z.number(),
+  carbsG: z.number(),
+  potassiumMg: z.number(),
+  magnesiumMg: z.number(),
+  sodiumMg: z.number(),
+  confidence: z.enum(['low', 'medium', 'high']),
+  explanation: z.string(),
+});
+
+const SYSTEM_PROMPT = `Ты — нутрициолог, специализирующийся на питании для пациентов с ХБП (Хроническая болезнь почек) 5 стадии на перитонеальном диализе.
+Оцени содержание фосфора (в мг), калории и КБЖУ (белки, жиры, углеводы в граммах) и электролиты (калий, магний, натрий в мг).
+
+ВАЖНО для ХБП 5 стадии: будь строг в отношении обработанных продуктов и добавок.
+Если продукт содержит неорганические фосфатные добавки (E338-E343, переработанное мясо, газировка, фастфуд) — увеличь оценку и упомяни это в объяснении.
+Если количество не указано — предполагай стандартную порцию.`;
+
+function validateMimeType(mimeType: string): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' {
+  const supported = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const;
+  if (supported.includes(mimeType as typeof supported[number])) {
+    return mimeType as typeof supported[number];
   }
+  return 'image/jpeg';
 }
 
-const fetchWithRetry = async (fn: () => Promise<any>, retries = 3, delay = 1000) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (i === retries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
-    }
+function checkApiKey(): void {
+  if (!apiKey) {
+    throw new Error('API ключ не найден. Добавьте ANTHROPIC_API_KEY в переменные окружения.');
   }
-};
-
-function handleApiError(error: any): never {
-  console.error("Gemini API Error:", error);
-  
-  const message = error.message || "";
-  
-  if (message.includes("429") || message.includes("quota")) {
-    throw new Error("Лимит запросов исчерпан (Quota Exceeded). Это ограничение бесплатной версии Google API. Если вы только что сменили ключ, подождите 1-2 минуты или проверьте лимиты в Google Console.");
-  }
-  if (message.includes("503") || message.includes("high demand") || message.includes("UNAVAILABLE")) {
-    throw new Error("Сервер ИИ перегружен (ошибка 503). Пожалуйста, попробуйте еще раз через 10-20 секунд.");
-  }
-  if (message.includes("API key not valid") || message.includes("invalid") || message.includes("403")) {
-    throw new Error("API ключ недействителен или не имеет доступа. Проверьте правильность ключа в настройках.");
-  }
-  
-  throw new Error(`Ошибка API: ${message || "Неизвестная ошибка"}`);
 }
 
 export async function estimatePhosphate(query: string): Promise<PhosphateEstimate> {
-  if (!apiKey) {
-    throw new Error("API ключ не найден. Пожалуйста, добавьте GEMINI_API_KEY в настройки (Settings -> Secrets).");
-  }
+  checkApiKey();
 
-  try {
-    const response = await fetchWithRetry(() => ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: `Estimate the phosphate content (in milligrams), calories, and KBJU (protein, fat, carbs in grams) and electrolytes (potassium, magnesium, sodium in milligrams) for the following food description: "${query}". 
-      Provide a realistic estimate based on standard nutritional data. 
-      IMPORTANT: For CKD Stage 5 patients, be very strict about processed foods and additives. 
-      If the food contains potential inorganic phosphate additives (like processed meats, sodas, fast food), increase the estimate and mention it in the explanation.
-      If the amount is not specified, assume a standard serving size.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            foodName: { type: Type.STRING },
-            phosphateMg: { type: Type.NUMBER },
-            calories: { type: Type.NUMBER },
-            proteinG: { type: Type.NUMBER },
-            fatG: { type: Type.NUMBER },
-            carbsG: { type: Type.NUMBER },
-            potassiumMg: { type: Type.NUMBER },
-            magnesiumMg: { type: Type.NUMBER },
-            sodiumMg: { type: Type.NUMBER },
-            confidence: { 
-              type: Type.STRING,
-              enum: ["low", "medium", "high"]
-            },
-            explanation: { type: Type.STRING }
-          },
-          required: ["foodName", "phosphateMg", "calories", "proteinG", "fatG", "carbsG", "potassiumMg", "magnesiumMg", "sodiumMg", "confidence", "explanation"]
-        }
-      }
-    }));
+  const response = await client.messages.parse({
+    model: 'claude-opus-4-6',
+    max_tokens: 1024,
+    thinking: { type: 'adaptive' },
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: 'user',
+        content: `Оцени содержание фосфора, калории, КБЖУ и электролиты для: "${query}"`,
+      },
+    ],
+    output_config: {
+      format: zodOutputFormat(PhosphateEstimateSchema, 'phosphate_estimate'),
+    },
+  });
 
-    return parseSafeJSON(response.text);
-  } catch (error: any) {
-    return handleApiError(error);
-  }
+  return response.parsed_output as PhosphateEstimate;
 }
 
-export async function estimatePhosphateFromImage(base64Image: string): Promise<PhosphateEstimate> {
-  if (!apiKey) {
-    throw new Error("API ключ не найден. Пожалуйста, добавьте GEMINI_API_KEY в настройки (Settings -> Secrets).");
-  }
+export async function estimatePhosphateFromImage(base64Image: string, mimeType: string = 'image/jpeg'): Promise<PhosphateEstimate> {
+  checkApiKey();
 
-  try {
-    const response = await fetchWithRetry(() => ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [
-        {
-          text: "Identify the food in this image and estimate its phosphate content (mg), calories, KBJU (protein, fat, carbs in g) and electrolytes (potassium, magnesium, sodium in mg) for a standard serving. Return JSON."
-        },
-        {
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: base64Image
-          }
-        }
-      ],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            foodName: { type: Type.STRING },
-            phosphateMg: { type: Type.NUMBER },
-            calories: { type: Type.NUMBER },
-            proteinG: { type: Type.NUMBER },
-            fatG: { type: Type.NUMBER },
-            carbsG: { type: Type.NUMBER },
-            potassiumMg: { type: Type.NUMBER },
-            magnesiumMg: { type: Type.NUMBER },
-            sodiumMg: { type: Type.NUMBER },
-            confidence: { 
-              type: Type.STRING,
-              enum: ["low", "medium", "high"]
+  const response = await client.messages.parse({
+    model: 'claude-opus-4-6',
+    max_tokens: 1024,
+    thinking: { type: 'adaptive' },
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: validateMimeType(mimeType),
+              data: base64Image,
             },
-            explanation: { type: Type.STRING }
           },
-          required: ["foodName", "phosphateMg", "calories", "proteinG", "fatG", "carbsG", "potassiumMg", "magnesiumMg", "sodiumMg", "confidence", "explanation"]
-        }
-      }
-    }));
+          {
+            type: 'text',
+            text: 'Определи продукт на изображении и оцени содержание фосфора, калории, КБЖУ и электролиты для стандартной порции.',
+          },
+        ],
+      },
+    ],
+    output_config: {
+      format: zodOutputFormat(PhosphateEstimateSchema, 'phosphate_estimate'),
+    },
+  });
 
-    return parseSafeJSON(response.text);
-  } catch (error: any) {
-    return handleApiError(error);
-  }
+  return response.parsed_output as PhosphateEstimate;
 }
