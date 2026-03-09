@@ -161,7 +161,8 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
         </div>
         <button
           onClick={saveVitals}
-          className="w-full mt-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+          disabled={!weight && !systolic && !diastolic}
+          className="w-full mt-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4" /> Сохранить замеры
         </button>
