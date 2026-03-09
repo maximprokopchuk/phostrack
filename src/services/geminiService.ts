@@ -67,7 +67,7 @@ function extractAndParse(response: Anthropic.Message): PhosphateEstimate {
     throw new Error('Пустой ответ от AI');
   }
   const cleaned = textBlock.text.replace(/```json\n?|\n?```/g, '').trim();
-  return PhosphateEstimateSchema.parse(JSON.parse(cleaned));
+  return PhosphateEstimateSchema.parse(JSON.parse(cleaned)) as PhosphateEstimate;
 }
 
 export async function estimatePhosphate(query: string): Promise<PhosphateEstimate> {
