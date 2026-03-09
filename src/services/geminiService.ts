@@ -5,10 +5,10 @@ const apiKey = process.env.OPENROUTER_API_KEY || import.meta.env.VITE_OPENROUTER
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-// Llama 3.1 8B — text queries (free on OpenRouter)
-const TEXT_MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
-// Llama 3.2 11B Vision — image queries (free, has vision support)
-const VISION_MODEL = 'meta-llama/llama-3.2-11b-vision-instruct:free';
+// Llama 3.1 8B — text queries
+const TEXT_MODEL = 'meta-llama/llama-3.1-8b-instruct';
+// Llama 3.2 11B Vision — image queries (has vision support)
+const VISION_MODEL = 'meta-llama/llama-3.2-11b-vision-instruct';
 
 const PhosphateEstimateSchema = z.object({
   foodName: z.string(),
