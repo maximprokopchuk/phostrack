@@ -67,6 +67,7 @@ export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd }) => {
       setEstimate(null);
       setInput('');
       setError(null);
+      (document.activeElement as HTMLElement)?.blur();
     }
   };
 

@@ -186,8 +186,9 @@ export default function App() {
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsCloseDayOpen(true)}
-              className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-xl transition-all"
+              className="p-2 text-emerald-400 border border-emerald-800/50 bg-emerald-900/20 hover:bg-emerald-900/40 rounded-xl transition-all"
               title="Завершить день"
+              aria-label="Завершить день"
             >
               <CalendarCheck className="w-5 h-5" />
             </button>
@@ -263,21 +264,21 @@ export default function App() {
             className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'phosphorus' ? 'text-emerald-500 scale-110' : 'text-slate-500 hover:text-slate-300'}`}
           >
             <LayoutDashboard className="w-6 h-6" />
-            <span className="text-[10px] font-bold uppercase">Фосфор</span>
+            <span className="text-xs font-bold uppercase">Фосфор</span>
           </button>
           <button
             onClick={() => setActiveTab('dialysis')}
             className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'dialysis' ? 'text-emerald-500 scale-110' : 'text-slate-500 hover:text-slate-300'}`}
           >
             <Droplets className="w-6 h-6" />
-            <span className="text-[10px] font-bold uppercase">Диализ</span>
+            <span className="text-xs font-bold uppercase">Диализ</span>
           </button>
           <button
             onClick={() => setActiveTab('history')}
             className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'history' ? 'text-emerald-500 scale-110' : 'text-slate-500 hover:text-slate-300'}`}
           >
             <History className="w-6 h-6" />
-            <span className="text-[10px] font-bold uppercase">История</span>
+            <span className="text-xs font-bold uppercase">История</span>
           </button>
         </div>
       </nav>

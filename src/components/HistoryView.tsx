@@ -3,7 +3,7 @@ import { DayRecord } from '../types';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
-import { History, ChevronDown, ChevronUp, Utensils, Droplets } from 'lucide-react';
+import { History, ChevronDown, ChevronUp, Utensils, Droplets, CalendarCheck } from 'lucide-react';
 
 interface HistoryViewProps {
   dayHistory: DayRecord[];
@@ -26,8 +26,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ dayHistory }) => {
           <History className="w-10 h-10 text-slate-600" />
         </div>
         <p className="text-slate-500 font-medium text-base">Нет закрытых дней</p>
-        <p className="text-slate-600 text-sm text-center max-w-xs">
-          Завершите текущий день, чтобы сохранить его в историю
+        <p className="text-slate-600 text-sm text-center max-w-xs leading-relaxed">
+          Нажмите на <CalendarCheck className="inline w-3.5 h-3.5 text-slate-500 align-text-bottom mx-0.5" /> в шапке, чтобы завершить день и сохранить его в историю
         </p>
       </div>
     );

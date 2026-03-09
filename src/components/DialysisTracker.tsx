@@ -126,7 +126,7 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
       {/* Vitals Form */}
       <div className="glass-card p-6 rounded-3xl">
         <h3 className="text-sm font-bold text-white mb-4">Замер показателей</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3" onKeyDown={e => { if (e.key === 'Enter') saveVitals(); }}>
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-500 uppercase">Вес (кг)</label>
             <input
@@ -209,7 +209,7 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
                 </span>
                 <button
                   onClick={() => deleteExchange(ex.id)}
-                  className="p-2 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                  className="p-2 text-slate-500 hover:text-red-500 transition-all"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -272,12 +272,14 @@ export const DialysisTracker: React.FC<DialysisTrackerProps> = ({ dayStart }) =>
                       onChange={e => setDrain(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl"
                       placeholder="2200"
+                      autoFocus
                     />
                   </div>
                 </div>
                 <button
                   onClick={addExchange}
-                  className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold mt-4"
+                  disabled={!drain}
+                  className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold mt-4 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                 >
                   Добавить обмен
                 </button>
