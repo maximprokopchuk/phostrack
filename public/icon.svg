@@ -28,7 +28,7 @@
            C372 210 256 96 256 96 Z"
         fill="url(#drop)" filter="url(#glow)"/>
 
-  <!-- White P letter, bold, centered in the drop -->
+  <!-- White N letter, bold, centered in the drop -->
   <text x="258" y="358"
         font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif"
         font-weight="900"
@@ -36,6 +36,6 @@
         fill="white"
         fill-opacity="0.95"
         text-anchor="middle"
-        dominant-baseline="auto">P</text>
+        dominant-baseline="auto">N</text>
 
 </svg>
