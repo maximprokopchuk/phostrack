@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PrimaryMetric, MetricLimits } from '../types';
+import { PrimaryMetric, MetricLimits, ModelProvider } from '../types';
 import { STORAGE_KEYS } from '../constants';
 
 export function useSettings() {
@@ -20,6 +20,10 @@ export function useSettings() {
     () => (localStorage.getItem(STORAGE_KEYS.PRIMARY_METRIC) as PrimaryMetric) ?? 'calories'
   );
 
+  const [modelProvider, setModelProviderState] = useState<ModelProvider>(
+    () => (localStorage.getItem(STORAGE_KEYS.MODEL_PROVIDER) as ModelProvider) ?? 'llama'
+  );
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.METRIC_LIMITS, JSON.stringify(metricLimits));
   }, [metricLimits]);
@@ -29,5 +33,10 @@ export function useSettings() {
     localStorage.setItem(STORAGE_KEYS.PRIMARY_METRIC, m);
   };
 
-  return { metricLimits, setMetricLimits, primaryMetric, setPrimaryMetric };
+  const setModelProvider = (p: ModelProvider) => {
+    setModelProviderState(p);
+    localStorage.setItem(STORAGE_KEYS.MODEL_PROVIDER, p);
+  };
+
+  return { metricLimits, setMetricLimits, primaryMetric, setPrimaryMetric, modelProvider, setModelProvider };
 }

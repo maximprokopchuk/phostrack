@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Search, Sparkles, Camera, Loader2, Plus, X } from 'lucide-react';
 import { estimatePhosphate, estimatePhosphateFromImage } from '../services/nutritionService';
-import { PhosphateEstimate, PrimaryMetric } from '../types';
+import { PhosphateEstimate, PrimaryMetric, ModelProvider } from '../types';
 import { metricByKey } from '../metrics';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../utils';
@@ -9,9 +9,10 @@ import { cn } from '../utils';
 interface FoodLoggerProps {
   onAdd: (estimate: PhosphateEstimate) => void;
   primaryMetric: PrimaryMetric;
+  modelProvider: ModelProvider;
 }
 
-export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd, primaryMetric }) => {
+export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd, primaryMetric, modelProvider }) => {
   const [input, setInput] = useState('');
   const [isEstimating, setIsEstimating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd, primaryMetric }) 
     setIsEstimating(true);
     setError(null);
     try {
-      const result = await estimatePhosphate(input);
+      const result = await estimatePhosphate(input, modelProvider);
       setEstimate(result);
     } catch (err: any) {
       console.error('Estimation failed:', err);
@@ -46,7 +47,7 @@ export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd, primaryMetric }) 
       reader.onloadend = async () => {
         const base64 = (reader.result as string).split(',')[1];
         try {
-          const result = await estimatePhosphateFromImage(base64);
+          const result = await estimatePhosphateFromImage(base64, 'image/jpeg', modelProvider);
           setEstimate(result);
         } catch (err: any) {
           console.error('Image estimation failed:', err);

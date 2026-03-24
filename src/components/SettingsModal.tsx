@@ -1,7 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { METRICS, metricByKey } from '../metrics';
-import { MetricLimits, PrimaryMetric } from '../types';
+import { MetricLimits, PrimaryMetric, ModelProvider } from '../types';
+
+const MODEL_OPTIONS: { key: ModelProvider; label: string; description: string }[] = [
+  { key: 'llama', label: 'Llama', description: 'Meta Llama 3' },
+  { key: 'gemini', label: 'Gemini Flash', description: 'Google Gemini 2.0' },
+];
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -10,6 +15,8 @@ interface SettingsModalProps {
   setMetricLimits: React.Dispatch<React.SetStateAction<MetricLimits>>;
   primaryMetric: PrimaryMetric;
   setPrimaryMetric: (m: PrimaryMetric) => void;
+  modelProvider: ModelProvider;
+  setModelProvider: (p: ModelProvider) => void;
 }
 
 export function SettingsModal({
@@ -19,6 +26,8 @@ export function SettingsModal({
   setMetricLimits,
   primaryMetric,
   setPrimaryMetric,
+  modelProvider,
+  setModelProvider,
 }: SettingsModalProps) {
   return (
     <AnimatePresence>
@@ -60,6 +69,30 @@ export function SettingsModal({
                       ].join(' ')}
                     >
                       {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* AI Model */}
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Модель AI</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {MODEL_OPTIONS.map(m => (
+                    <button
+                      key={m.key}
+                      onClick={() => setModelProvider(m.key)}
+                      className={[
+                        'py-3 px-3 rounded-xl text-left transition-all border',
+                        modelProvider === m.key
+                          ? 'bg-emerald-900/30 border-emerald-700 shadow'
+                          : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                      ].join(' ')}
+                    >
+                      <span className={`text-sm font-bold block ${modelProvider === m.key ? 'text-emerald-400' : 'text-slate-200'}`}>
+                        {m.label}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{m.description}</span>
                     </button>
                   ))}
                 </div>
