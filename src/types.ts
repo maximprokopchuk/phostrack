@@ -1,3 +1,5 @@
+export type ModelProvider = 'llama' | 'gemini';
+
 export type PrimaryMetric =
   | 'calories' | 'phosphorus'
   | 'protein'  | 'fat'  | 'carbs'

@@ -6,4 +6,5 @@ export const STORAGE_KEYS = {
   DAY_HISTORY: 'phostrack_day_history',
   EXCHANGES: 'phostrack_exchanges',
   VITALS: 'phostrack_vitals',
+  MODEL_PROVIDER: 'phostrack_model_provider',
 } as const;

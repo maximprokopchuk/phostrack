@@ -1,14 +1,20 @@
 import { z } from 'zod';
-import { PhosphateEstimate } from '../types';
+import { PhosphateEstimate, ModelProvider } from '../types';
 
 const apiKey = process.env.OPENROUTER_API_KEY || import.meta.env.VITE_OPENROUTER_API_KEY;
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-// Llama 3.1 8B — text queries
-const TEXT_MODEL = 'meta-llama/llama-3.1-8b-instruct';
-// Llama 3.2 11B Vision — image queries (has vision support)
-const VISION_MODEL = 'meta-llama/llama-3.2-11b-vision-instruct';
+const MODEL_CONFIGS: Record<ModelProvider, { text: string; vision: string }> = {
+  llama: {
+    text: 'meta-llama/llama-3.1-8b-instruct',
+    vision: 'meta-llama/llama-3.2-11b-vision-instruct',
+  },
+  gemini: {
+    text: 'google/gemini-2.0-flash-001',
+    vision: 'google/gemini-2.0-flash-001',
+  },
+};
 
 const PhosphateEstimateSchema = z.object({
   foodName: z.string(),
@@ -104,10 +110,11 @@ async function callOpenRouter(model: string, messages: object[]): Promise<Phosph
   return PhosphateEstimateSchema.parse(JSON.parse(cleaned)) as PhosphateEstimate;
 }
 
-export async function estimatePhosphate(query: string): Promise<PhosphateEstimate> {
+export async function estimatePhosphate(query: string, provider: ModelProvider = 'llama'): Promise<PhosphateEstimate> {
   checkApiKey();
 
-  return callOpenRouter(TEXT_MODEL, [
+  const model = MODEL_CONFIGS[provider].text;
+  return callOpenRouter(model, [
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: query },
   ]);
@@ -115,11 +122,13 @@ export async function estimatePhosphate(query: string): Promise<PhosphateEstimat
 
 export async function estimatePhosphateFromImage(
   base64Image: string,
-  mimeType: string = 'image/jpeg'
+  mimeType: string = 'image/jpeg',
+  provider: ModelProvider = 'llama'
 ): Promise<PhosphateEstimate> {
   checkApiKey();
 
-  return callOpenRouter(VISION_MODEL, [
+  const model = MODEL_CONFIGS[provider].vision;
+  return callOpenRouter(model, [
     { role: 'system', content: SYSTEM_PROMPT },
     {
       role: 'user',
