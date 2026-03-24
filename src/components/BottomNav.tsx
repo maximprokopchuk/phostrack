@@ -1,4 +1,4 @@
-import { LayoutDashboard, Droplets, History } from 'lucide-react';
+import { UtensilsCrossed, Droplets, History } from 'lucide-react';
 
 export type Tab = 'phosphorus' | 'dialysis' | 'history';
 
@@ -15,8 +15,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
           onClick={() => onTabChange('phosphorus')}
           className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'phosphorus' ? 'text-emerald-500 scale-110' : 'text-slate-500 hover:text-slate-300'}`}
         >
-          <LayoutDashboard className="w-6 h-6" />
-          <span className="text-xs font-bold uppercase">Фосфор</span>
+          <UtensilsCrossed className="w-6 h-6" />
+          <span className="text-xs font-bold uppercase">Еда</span>
         </button>
         <button
           onClick={() => onTabChange('dialysis')}

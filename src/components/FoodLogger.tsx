@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Search, Sparkles, Camera, Loader2, Plus, X } from 'lucide-react';
-import { estimatePhosphate, estimatePhosphateFromImage } from '../services/nutritionService';
+import { estimatePhosphate, estimatePhosphateFromImage, supportsVision } from '../services/nutritionService';
 import { PhosphateEstimate, PrimaryMetric, ModelProvider } from '../types';
 import { metricByKey } from '../metrics';
 import { motion, AnimatePresence } from 'motion/react';
@@ -87,14 +87,16 @@ export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd, primaryMetric, mo
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
         
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-900/20 rounded-xl transition-colors"
-            title="Сфотографировать еду"
-          >
-            <Camera className="w-5 h-5" />
-          </button>
+          {supportsVision(modelProvider) && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-900/20 rounded-xl transition-colors"
+              title="Сфотографировать еду"
+            >
+              <Camera className="w-5 h-5" />
+            </button>
+          )}
           <button
             type="submit"
             disabled={isEstimating || !input.trim()}
@@ -104,13 +106,15 @@ export const FoodLogger: React.FC<FoodLoggerProps> = ({ onAdd, primaryMetric, mo
             <span className="hidden sm:inline">Оценить</span>
           </button>
         </div>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleImageUpload}
-          accept="image/*"
-          className="hidden"
-        />
+        {supportsVision(modelProvider) && (
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+            accept="image/*"
+            className="hidden"
+          />
+        )}
       </form>
 
       <AnimatePresence>
