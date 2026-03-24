@@ -5,7 +5,7 @@ const apiKey = process.env.OPENROUTER_API_KEY || import.meta.env.VITE_OPENROUTER
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-const MODEL_CONFIGS: Record<ModelProvider, { text: string; vision: string }> = {
+const MODEL_CONFIGS: Record<ModelProvider, { text: string; vision: string | null }> = {
   llama: {
     text: 'meta-llama/llama-3.1-8b-instruct',
     vision: 'meta-llama/llama-3.2-11b-vision-instruct',
@@ -15,6 +15,10 @@ const MODEL_CONFIGS: Record<ModelProvider, { text: string; vision: string }> = {
     vision: 'google/gemini-2.0-flash-001',
   },
 };
+
+export function supportsVision(provider: ModelProvider): boolean {
+  return MODEL_CONFIGS[provider].vision !== null;
+}
 
 const PhosphateEstimateSchema = z.object({
   foodName: z.string(),
@@ -128,6 +132,9 @@ export async function estimatePhosphateFromImage(
   checkApiKey();
 
   const model = MODEL_CONFIGS[provider].vision;
+  if (!model) {
+    throw new Error('Выбранная модель не поддерживает распознавание изображений.');
+  }
   return callOpenRouter(model, [
     { role: 'system', content: SYSTEM_PROMPT },
     {
