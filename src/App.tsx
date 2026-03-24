@@ -20,7 +20,7 @@ export default function App() {
   const [isRecommendationsOpen, setIsRecommendationsOpen] = useState(false);
   const [isCloseDayOpen, setIsCloseDayOpen] = useState(false);
 
-  const { metricLimits, setMetricLimits, primaryMetric, setPrimaryMetric } = useSettings();
+  const { metricLimits, setMetricLimits, primaryMetric, setPrimaryMetric, modelProvider, setModelProvider } = useSettings();
   const { logs, stats, dayStart, dayHistory, addFood, deleteFood, closeDay } = useDayStore(metricLimits);
 
   // Force dark mode
@@ -53,7 +53,7 @@ export default function App() {
             >
               <Dashboard stats={stats} primaryMetric={primaryMetric} metricLimits={metricLimits} />
               <div className="mb-10">
-                <FoodLogger onAdd={addFood} primaryMetric={primaryMetric} />
+                <FoodLogger onAdd={addFood} primaryMetric={primaryMetric} modelProvider={modelProvider} />
               </div>
               <LogList items={logs} onDelete={deleteFood} primaryMetric={primaryMetric} />
               <MotivationCard />
@@ -93,6 +93,8 @@ export default function App() {
         setMetricLimits={setMetricLimits}
         primaryMetric={primaryMetric}
         setPrimaryMetric={setPrimaryMetric}
+        modelProvider={modelProvider}
+        setModelProvider={setModelProvider}
       />
 
       <AnimatePresence>
